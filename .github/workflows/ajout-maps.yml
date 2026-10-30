@@ -1,0 +1,36 @@
+# Toutes les 10 min (GitHub peut prendre quelques minutes de retard), crée dans #our-maps
+# les fiches des codes collés dans #➕・add-a-map. "Run workflow" pour le lancer tout de suite.
+name: Add maps
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: ajout-maps
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  ajout:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: python ajout_maps.py --une-fois
+        env:
+          DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
+          GUILD_ID: "1562839943909351528"
+      # Sans activité pendant 60 jours, GitHub met en pause les tâches planifiées des dépôts
+      # publics : on réactive celle-ci à chaque passage.
+      - run: gh api -X PUT "repos/${{ github.repository }}/actions/workflows/ajout-maps.yml/enable"
+        env:
+          GH_TOKEN: ${{ github.token }}
